@@ -12,8 +12,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .config import JOBS_STATE_PATH, ensure_directories
-from .idc_catalog import find_slide, outputs_exist, safe_slide_dir
-from .qc_runner import load_result, run_slide_job
+from .qc_runner import run_slide_job
 
 
 @dataclass
@@ -51,8 +50,6 @@ class JobStore:
         job_ids = []
         for series_uid in series:
             job_id = uuid.uuid4().hex
-            slide_meta = find_slide(collection_id, series_uid)
-            slide_id = slide_meta["slide_id"]
             record = JobRecord(
                 job_id=job_id,
                 batch_id=batch_id,
@@ -61,14 +58,8 @@ class JobStore:
                 series_instance_uid=series_uid,
                 artifact_mpp=artifact_mpp,
                 force=force,
-                slide_id=slide_id,
                 message="Queued",
             )
-            slide_dir = safe_slide_dir(collection_id, slide_id)
-            if not force and outputs_exist(collection_id, slide_id):
-                record.state = "done"
-                record.message = "Using existing outputs"
-                record.result = load_result(slide_dir)
             with self._lock:
                 self._jobs[job_id] = record
                 self._batches.setdefault(batch_id, []).append(job_id)
