@@ -1,0 +1,17 @@
+idc-index>=0.11.9
+pandas
+numpy
+pyarrow
+pydicom
+wsidicom
+pyvips
+tifffile
+Pillow
+opencv-python-headless
+tqdm
+torch
+segmentation-models-pytorch
+requests
+fastapi
+uvicorn[standard]
+httpx2

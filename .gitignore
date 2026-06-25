@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.cache/
+.env
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+
+# Live app runtime state and generated results.
+web/output/
+web/state/
+
+# Temporary/raw slide inputs.
+*.dcm
+*.svs
+*.ndpi
+*.tif
+*.tiff
+
+# GrandQC checkpoints are local-only and downloaded from official GrandQC sources.
+grandqc/**/models/**/*.pth
+grandqc/**/models/**/*.pt
+grandqc/**/models/**/*.ckpt

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GrandQC IDC Live Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <h1>GrandQC IDC Live Dashboard</h1>
+      <p>Run direct-DICOM GrandQC on IDC slide microscopy series from your local machine.</p>
+    </div>
+    <div class="version" id="idcVersion">IDC loading...</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel controls">
+      <h2>1. Pick Collection</h2>
+      <input id="collectionSearch" class="input" placeholder="Search collections" />
+      <select id="collectionSelect" class="input" size="8"></select>
+
+      <h2>2. Pick Slides</h2>
+      <div class="row">
+        <input id="slideSearch" class="input" placeholder="Search slide ID or patient" />
+        <label class="check"><input type="checkbox" id="diagnosticOnly" checked /> Diagnostic only</label>
+      </div>
+      <div class="row">
+        <button id="loadSlides" class="button secondary">Load slides</button>
+        <button id="prevPage" class="button ghost">Prev</button>
+        <button id="nextPage" class="button ghost">Next</button>
+      </div>
+      <div class="muted" id="slidePageInfo">No collection selected.</div>
+
+      <h2>3. Run</h2>
+      <label>Artifact MPP <input id="artifactMpp" class="input small" type="number" min="1" step="0.5" value="1.5" /></label>
+      <label class="check"><input type="checkbox" id="forceRun" /> Force re-run</label>
+      <button id="runSelected" class="button primary">Run QC on selected</button>
+      <div class="selected" id="selectedCount">0 selected</div>
+    </section>
+
+    <section class="content">
+      <section class="panel">
+        <div class="section-head">
+          <h2>Slide Picker</h2>
+          <button id="selectPage" class="button secondary">Select all on page</button>
+        </div>
+        <div class="table-wrap">
+          <table id="slideTable">
+            <thead>
+              <tr>
+                <th></th><th>Slide</th><th>Patient</th><th>Dimensions</th><th>Objective</th><th>Size MB</th><th>License</th><th>Status</th><th>SLIM</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Job Progress</h2>
+          <button id="exportCsv" class="button secondary">Export results CSV</button>
+        </div>
+        <div id="jobs" class="jobs muted">No jobs submitted yet.</div>
+      </section>
+
+      <section class="panel">
+        <h2>Results Gallery</h2>
+        <div class="caveat">Review badge caveat: very high single-class burden, especially darkspot / foreign object, may be a model edge case and should be confirmed in IDC SLIM.</div>
+        <div id="results" class="gallery"></div>
+      </section>
+    </section>
+  </main>
+
+  <footer>
+    Validation context: direct-DICOM GrandQC reached mean Dice 0.999 vs Zenodo 14041578 reference masks. TIFF fallback, if ever used, is labeled per slide.
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
