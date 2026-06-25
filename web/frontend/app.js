@@ -10,6 +10,7 @@ const state = {
 };
 
 const $ = (id) => document.getElementById(id);
+let slideLoadToken = 0;
 
 async function api(path, options = {}) {
   const response = await fetch(path, options);
@@ -50,6 +51,7 @@ function renderCollections() {
 async function loadSlides(reset = true) {
   const collection = $('collectionSelect').value;
   if (!collection) return;
+  const token = ++slideLoadToken;
   if (collection !== state.currentCollection) {
     state.slides = [];
     state.selected.clear();
@@ -65,10 +67,23 @@ async function loadSlides(reset = true) {
     search: $('slideSearch').value,
     diagnostic_only: $('diagnosticOnly').checked ? 'true' : 'false',
   });
-  const data = await api(`/api/collections/${collection}/slides?${params}`);
-  state.slides = data.slides;
-  $('slidePageInfo').textContent = `${data.total} slides, showing ${data.offset + 1}-${Math.min(data.offset + data.limit, data.total)}`;
-  renderSlides();
+  try {
+    const data = await api(`/api/collections/${collection}/slides?${params}`);
+    if (token !== slideLoadToken) return;
+    state.slides = data.slides;
+    if (data.total === 0) {
+      const kind = data.diagnostic_only ? 'diagnostic slide microscopy series' : 'slide microscopy series';
+      $('slidePageInfo').textContent = `${collection}: 0 ${kind} found. Try unchecking Diagnostic only or pick another collection.`;
+    } else {
+      $('slidePageInfo').textContent = `${collection}: ${data.total} slides, showing ${data.offset + 1}-${Math.min(data.offset + data.limit, data.total)}`;
+    }
+    renderSlides();
+  } catch (err) {
+    if (token !== slideLoadToken) return;
+    state.slides = [];
+    renderSlides();
+    $('slidePageInfo').textContent = `Could not load ${collection}: ${err.message}`;
+  }
 }
 
 function renderSlides() {
