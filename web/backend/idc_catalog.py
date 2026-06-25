@@ -137,11 +137,50 @@ def list_slides(
 
 
 def find_slide(collection_id: str, series_instance_uid: str) -> dict[str, Any]:
-    page = list_slides(collection_id, limit=100000, offset=0, search="", diagnostic_only=False)["slides"]
-    for slide in page:
-        if slide["SeriesInstanceUID"] == series_instance_uid:
-            return slide
-    raise KeyError(f"Series {series_instance_uid} not found in {collection_id}")
+    client = get_client()
+    query = f"""
+        SELECT
+            i.collection_id,
+            i.StudyInstanceUID,
+            i.SeriesInstanceUID,
+            i.PatientID,
+            s.ContainerIdentifier,
+            s.primaryAnatomicStructureModifier_CodeMeaning AS tissue_type,
+            s.max_TotalPixelMatrixColumns AS width_px,
+            s.max_TotalPixelMatrixRows AS height_px,
+            s.min_PixelSpacing_2sf AS pixel_spacing_mm,
+            s.ObjectiveLensPower AS objective_power,
+            ROUND(i.series_size_MB, 1) AS size_MB,
+            i.license_short_name
+        FROM index i
+        JOIN sm_index s ON i.SeriesInstanceUID = s.SeriesInstanceUID
+        WHERE i.collection_id = {sql_quote(collection_id)}
+          AND i.SeriesInstanceUID = {sql_quote(series_instance_uid)}
+          AND i.Modality = 'SM'
+        LIMIT 1
+    """
+    df = client.sql_query(query)
+    if df.empty:
+        raise KeyError(f"Series {series_instance_uid} not found in {collection_id}")
+
+    row = df.iloc[0].to_dict()
+    slide_id = str(row.get("ContainerIdentifier") or row["SeriesInstanceUID"])
+    return {
+        "collection_id": str(row.get("collection_id") or collection_id),
+        "slide_id": slide_id,
+        "PatientID": str(row.get("PatientID") or ""),
+        "StudyInstanceUID": str(row["StudyInstanceUID"]),
+        "SeriesInstanceUID": str(row["SeriesInstanceUID"]),
+        "width_px": int(row["width_px"]) if pd.notna(row.get("width_px")) else None,
+        "height_px": int(row["height_px"]) if pd.notna(row.get("height_px")) else None,
+        "pixel_spacing_mm": float(row["pixel_spacing_mm"]) if pd.notna(row.get("pixel_spacing_mm")) else None,
+        "objective_power": row.get("objective_power") if pd.notna(row.get("objective_power")) else None,
+        "size_MB": float(row["size_MB"]) if pd.notna(row.get("size_MB")) else None,
+        "license_short_name": str(row.get("license_short_name") or ""),
+        "tissue_type": str(row.get("tissue_type") or ""),
+        "slim_url": slim_viewer_url(row["StudyInstanceUID"], row["SeriesInstanceUID"]),
+        "already_processed": outputs_exist(collection_id, slide_id),
+    }
 
 
 def outputs_exist(collection_id: str, slide_id: str) -> bool:

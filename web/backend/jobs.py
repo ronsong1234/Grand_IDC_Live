@@ -42,9 +42,9 @@ class JobStore:
         self._batches: dict[str, list[str]] = {}
         self._queue: queue.Queue[str] = queue.Queue()
         self._lock = threading.Lock()
+        self._load_state()
         self._worker = threading.Thread(target=self._worker_loop, daemon=True)
         self._worker.start()
-        self._load_state()
 
     def enqueue(self, *, collection_id: str, series: list[str], artifact_mpp: float, force: bool) -> dict[str, Any]:
         batch_id = uuid.uuid4().hex

@@ -133,15 +133,26 @@ function updateSelectedCount() {
 
 async function runSelected() {
   if (!state.currentCollection || state.selected.size === 0) return;
+  const runButton = $('runSelected');
+  runButton.disabled = true;
+  $('jobs').className = 'jobs muted';
+  $('jobs').textContent = `Submitting ${state.selected.size} job(s)...`;
   const body = {
     collection_id: state.currentCollection,
     series: Array.from(state.selected.keys()),
     artifact_mpp: Number($('artifactMpp').value || 1.5),
     force: $('forceRun').checked,
   };
-  const data = await api('/api/jobs', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
-  state.activeBatch = data.batch_id;
-  pollBatch();
+  try {
+    const data = await api('/api/jobs', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}, 120000);
+    state.activeBatch = data.batch_id;
+    pollBatch();
+  } catch (err) {
+    $('jobs').className = 'jobs error';
+    $('jobs').textContent = `Could not submit jobs: ${err.message}`;
+  } finally {
+    runButton.disabled = false;
+  }
 }
 
 async function pollBatch() {
