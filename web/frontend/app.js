@@ -30,6 +30,7 @@ async function loadCollections() {
 function renderCollections() {
   const query = $('collectionSearch').value.toLowerCase();
   const select = $('collectionSelect');
+  const previous = state.currentCollection || select.value;
   select.innerHTML = '';
   state.collections
     .filter(c => c.collection_id.toLowerCase().includes(query) || c.display_name.toLowerCase().includes(query))
@@ -37,15 +38,27 @@ function renderCollections() {
       const option = document.createElement('option');
       option.value = c.collection_id;
       option.textContent = `${c.collection_id} (${c.slide_count} SM, ${c.license_short_name || 'license n/a'})`;
+      if (c.collection_id === previous) option.selected = true;
       select.appendChild(option);
     });
+  if (!select.value) {
+    state.currentCollection = null;
+    $('slidePageInfo').textContent = 'No matching collection selected.';
+  }
 }
 
 async function loadSlides(reset = true) {
   const collection = $('collectionSelect').value;
   if (!collection) return;
+  if (collection !== state.currentCollection) {
+    state.slides = [];
+    state.selected.clear();
+    renderSlides();
+    updateSelectedCount();
+  }
   state.currentCollection = collection;
   if (reset) state.offset = 0;
+  $('slidePageInfo').textContent = `Loading ${collection} slides...`;
   const params = new URLSearchParams({
     limit: state.limit,
     offset: state.offset,
@@ -181,6 +194,7 @@ function exportCsv() {
 
 $('collectionSearch').addEventListener('input', renderCollections);
 $('collectionSelect').addEventListener('change', () => loadSlides(true));
+$('collectionSelect').addEventListener('click', () => loadSlides(true));
 $('loadSlides').addEventListener('click', () => loadSlides(true));
 $('slideSearch').addEventListener('keydown', e => { if (e.key === 'Enter') loadSlides(true); });
 $('diagnosticOnly').addEventListener('change', () => loadSlides(true));
