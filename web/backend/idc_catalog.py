@@ -114,10 +114,7 @@ def list_slides(
     rows = []
     for row in page.to_dict(orient="records"):
         slide_id = str(row["slide_id"])
-        try:
-            slim_url = client.get_viewer_URL(seriesInstanceUID=row["SeriesInstanceUID"])
-        except Exception:
-            slim_url = ""
+        slim_url = slim_viewer_url(row["StudyInstanceUID"], row["SeriesInstanceUID"])
         rows.append(
             {
                 "collection_id": str(row.get("collection_id") or collection_id),
@@ -158,6 +155,13 @@ def safe_slide_dir(collection_id: str, slide_id: str) -> Path:
 
 def safe_name(value: str) -> str:
     return "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in str(value))
+
+
+def slim_viewer_url(study_instance_uid: str, series_instance_uid: str) -> str:
+    return (
+        "https://viewer.imaging.datacommons.cancer.gov/slim/studies/"
+        f"{study_instance_uid}/series/{series_instance_uid}"
+    )
 
 
 def sql_quote(value: str) -> str:

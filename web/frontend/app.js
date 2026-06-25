@@ -12,13 +12,24 @@ const state = {
 const $ = (id) => document.getElementById(id);
 let slideLoadToken = 0;
 
-async function api(path, options = {}) {
-  const response = await fetch(path, options);
-  if (!response.ok) {
-    const detail = await response.text();
-    throw new Error(`${response.status} ${detail}`);
+async function api(path, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(path, {...options, signal: controller.signal});
+    if (!response.ok) {
+      const detail = await response.text();
+      throw new Error(`${response.status} ${detail}`);
+    }
+    return response.json();
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out. Try a smaller search, uncheck Diagnostic only, or pick a TCGA collection.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-  return response.json();
 }
 
 async function loadCollections() {
@@ -209,7 +220,6 @@ function exportCsv() {
 
 $('collectionSearch').addEventListener('input', renderCollections);
 $('collectionSelect').addEventListener('change', () => loadSlides(true));
-$('collectionSelect').addEventListener('click', () => loadSlides(true));
 $('loadSlides').addEventListener('click', () => loadSlides(true));
 $('slideSearch').addEventListener('keydown', e => { if (e.key === 'Enter') loadSlides(true); });
 $('diagnosticOnly').addEventListener('change', () => loadSlides(true));
