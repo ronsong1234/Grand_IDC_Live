@@ -1,0 +1,272 @@
+[
+  {
+    "status": "ok",
+    "collection_id": "tcga_brca",
+    "slide_id": "TCGA-OL-A5RW-01Z-00-DX1",
+    "tissue_percentage": 0.5142306034503773,
+    "artifact_percentage_of_tissue": 0.010527072151820412,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 49.941,
+    "artifact_fractions": {
+      "fold_fraction": 0.0005585683405420617,
+      "darkspot_foreign_object_fraction": 0.009487777762253674,
+      "pen_marking_fraction": 2.993934289130222e-06,
+      "edge_air_bubble_fraction": 0.00047284202206329977,
+      "out_of_focus_fraction": 4.89009267224603e-06
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_brca",
+    "slide_id": "TCGA-OL-A5S0-01Z-00-DX1",
+    "tissue_percentage": 0.7156661726316281,
+    "artifact_percentage_of_tissue": 0.015833536887733552,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 58.465,
+    "artifact_fractions": {
+      "fold_fraction": 0.015059689774924657,
+      "darkspot_foreign_object_fraction": 0.0006606327423856358,
+      "pen_marking_fraction": 1.0824464760852853e-05,
+      "edge_air_bubble_fraction": 0.0,
+      "out_of_focus_fraction": 0.00010238990566240687
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-A6-3810-01Z-00-DX1",
+    "tissue_percentage": 0.41919741668569227,
+    "artifact_percentage_of_tissue": 0.03237974795731684,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 262.115,
+    "artifact_fractions": {
+      "fold_fraction": 0.021352573644572836,
+      "darkspot_foreign_object_fraction": 0.0031181164930099026,
+      "pen_marking_fraction": 0.0,
+      "edge_air_bubble_fraction": 0.0,
+      "out_of_focus_fraction": 0.007909057819734095
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-AA-3489-01Z-00-DX1",
+    "tissue_percentage": 0.1669470666074872,
+    "artifact_percentage_of_tissue": 0.037878290919037605,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 21.231,
+    "artifact_fractions": {
+      "fold_fraction": 0.0010545298368820574,
+      "darkspot_foreign_object_fraction": 0.007423172179225515,
+      "pen_marking_fraction": 0.0,
+      "edge_air_bubble_fraction": 2.5373077061129314e-05,
+      "out_of_focus_fraction": 0.029375215825868904
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-AA-3506-01Z-00-DX1",
+    "tissue_percentage": 0.3739432892152852,
+    "artifact_percentage_of_tissue": 0.28544246993358463,
+    "usable": false,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 92.523,
+    "artifact_fractions": {
+      "fold_fraction": 0.002687671131397572,
+      "darkspot_foreign_object_fraction": 0.23804965054291927,
+      "pen_marking_fraction": 0.0002470275491277107,
+      "edge_air_bubble_fraction": 0.00917677428178236,
+      "out_of_focus_fraction": 0.035281346428357736
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-AA-3511-01Z-00-DX1",
+    "tissue_percentage": 0.553686305085358,
+    "artifact_percentage_of_tissue": 0.7108815382064226,
+    "usable": false,
+    "qc_flag_review": true,
+    "qc_flag_reason": "Darkspot / foreign object fraction 0.657 > 0.60",
+    "runtime_seconds": 38.426,
+    "artifact_fractions": {
+      "fold_fraction": 0.010848644989765045,
+      "darkspot_foreign_object_fraction": 0.6574105789296747,
+      "pen_marking_fraction": 0.003313561157370029,
+      "edge_air_bubble_fraction": 0.03927046832510097,
+      "out_of_focus_fraction": 3.828480451189819e-05
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-AA-3662-01Z-00-DX1",
+    "tissue_percentage": 0.37288190880243177,
+    "artifact_percentage_of_tissue": 0.413726855269001,
+    "usable": false,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 31.763,
+    "artifact_fractions": {
+      "fold_fraction": 0.01696728466948422,
+      "darkspot_foreign_object_fraction": 0.25555446206782173,
+      "pen_marking_fraction": 0.004465986152800331,
+      "edge_air_bubble_fraction": 0.012673826581350323,
+      "out_of_focus_fraction": 0.1240652957975444
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-AD-6895-01Z-00-DX1",
+    "tissue_percentage": 0.5812887036194501,
+    "artifact_percentage_of_tissue": 0.00495841276993032,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 76.706,
+    "artifact_fractions": {
+      "fold_fraction": 0.0013853070035338777,
+      "darkspot_foreign_object_fraction": 0.0006319435804955649,
+      "pen_marking_fraction": 0.0,
+      "edge_air_bubble_fraction": 0.0016742862287856186,
+      "out_of_focus_fraction": 0.0012668759571152588
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_coad",
+    "slide_id": "TCGA-AD-6899-01Z-00-DX1",
+    "tissue_percentage": 0.3401537430290564,
+    "artifact_percentage_of_tissue": 0.00020812041850994012,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 224.23,
+    "artifact_fractions": {
+      "fold_fraction": 1.9684648354336554e-05,
+      "darkspot_foreign_object_fraction": 2.111625914374285e-05,
+      "pen_marking_fraction": 0.00013510826825021907,
+      "edge_air_bubble_fraction": 1.8431988913606047e-05,
+      "out_of_focus_fraction": 1.3779253848035589e-05
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_esca",
+    "slide_id": "TCGA-M9-A5M8-01Z-00-DX1",
+    "tissue_percentage": 0.4182282201836656,
+    "artifact_percentage_of_tissue": 0.011595053935455329,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 70.04,
+    "artifact_fractions": {
+      "fold_fraction": 0.010411501213483608,
+      "darkspot_foreign_object_fraction": 4.617908019253826e-06,
+      "pen_marking_fraction": 6.693116067412335e-05,
+      "edge_air_bubble_fraction": 0.0,
+      "out_of_focus_fraction": 0.001112003653278344
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_esca",
+    "slide_id": "TCGA-V5-A7RE-01Z-00-DX1",
+    "tissue_percentage": 0.04448622427728542,
+    "artifact_percentage_of_tissue": 0.48088092400770005,
+    "usable": false,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 43.009,
+    "artifact_fractions": {
+      "fold_fraction": 0.019585663213860117,
+      "darkspot_foreign_object_fraction": 0.00026858557154642955,
+      "pen_marking_fraction": 0.0,
+      "edge_air_bubble_fraction": 0.0,
+      "out_of_focus_fraction": 0.4610266752222935
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_kirc",
+    "slide_id": "TCGA-A3-3365-01Z-00-DX1",
+    "tissue_percentage": 0.4444319350726692,
+    "artifact_percentage_of_tissue": 0.05885546946917294,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 144.489,
+    "artifact_fractions": {
+      "fold_fraction": 0.013795546610077598,
+      "darkspot_foreign_object_fraction": 0.006883411475528596,
+      "pen_marking_fraction": 0.001429607655581872,
+      "edge_air_bubble_fraction": 0.0011367186184219936,
+      "out_of_focus_fraction": 0.03561018510956288
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_kirc",
+    "slide_id": "TCGA-A3-3385-01Z-00-DX1",
+    "tissue_percentage": 0.40777546985336705,
+    "artifact_percentage_of_tissue": 0.0022320406393306043,
+    "usable": true,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 126.166,
+    "artifact_fractions": {
+      "fold_fraction": 0.0009894584298286136,
+      "darkspot_foreign_object_fraction": 0.0009128870874882147,
+      "pen_marking_fraction": 0.0,
+      "edge_air_bubble_fraction": 0.0003212079208530253,
+      "out_of_focus_fraction": 8.487201160750668e-06
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_luad",
+    "slide_id": "TCGA-05-4425-01Z-00-DX1",
+    "tissue_percentage": 0.44860548433010944,
+    "artifact_percentage_of_tissue": 0.9930155628834009,
+    "usable": false,
+    "qc_flag_review": true,
+    "qc_flag_reason": "total artifact fraction 0.993 > 0.90; Darkspot / foreign object fraction 0.902 > 0.60",
+    "runtime_seconds": 21.453,
+    "artifact_fractions": {
+      "fold_fraction": 0.0,
+      "darkspot_foreign_object_fraction": 0.9021757269081611,
+      "pen_marking_fraction": 0.0,
+      "edge_air_bubble_fraction": 0.0759018667463961,
+      "out_of_focus_fraction": 0.014937969228843743
+    }
+  },
+  {
+    "status": "ok",
+    "collection_id": "tcga_luad",
+    "slide_id": "TCGA-05-5715-01Z-00-DX1",
+    "tissue_percentage": 0.27500589943595877,
+    "artifact_percentage_of_tissue": 0.21379012691027366,
+    "usable": false,
+    "qc_flag_review": false,
+    "qc_flag_reason": "",
+    "runtime_seconds": 21.294,
+    "artifact_fractions": {
+      "fold_fraction": 0.005636740833066781,
+      "darkspot_foreign_object_fraction": 0.04056667205672386,
+      "pen_marking_fraction": 0.00019475024166734533,
+      "edge_air_bubble_fraction": 0.13770061733859434,
+      "out_of_focus_fraction": 0.029691346440221315
+    }
+  }
+]
