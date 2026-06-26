@@ -10,7 +10,7 @@ This validation compares the GrandQC-IDC direct-DICOM output masks against five 
 - Macro Dice across all classes: 0.712024 +/- 0.141771.
 - Macro Dice excluding background: 0.654914 +/- 0.164388.
 - Tissue-class macro Dice: 0.654914.
-- Worst slide by macro Dice: TCGA-AC-A62V-01Z-00-DX1 (0.471099).
+- Worst slide by macro Dice: TCGA-AC-A62V-01Z-00-DX1 (0.471099); this is driven by rare artifact-class disagreement while pixel agreement and tissue-weighted Dice remain high.
 - Worst class by mean Dice: out_of_focus (0.224835).
 - Confusion-matrix valid pixels: 117,964,800.
 
@@ -52,7 +52,7 @@ The normalized confusion matrix is saved as `confusion_matrix.parquet` and `conf
 
 ## Interpretation
 
-The headline Dice is reported with mean and standard deviation, plus a background-excluded variant, because background and normal tissue can dominate whole-slide masks. Rare artifact classes should be interpreted from the per-class table rather than hidden behind the macro headline.
+The headline Dice is reported with mean and standard deviation, plus a background-excluded variant, because background and normal tissue can dominate whole-slide masks. Rare artifact classes should be interpreted from the per-class table rather than hidden behind the macro headline. A62V is the main outlier: its macro Dice is low because rare artifact classes differ, while pixel agreement is 0.960222 and tissue-weighted Dice is 0.953576.
 
 ## Regression Cause And Fix
 

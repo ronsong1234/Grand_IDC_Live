@@ -32,9 +32,18 @@ A conservative conclusion is appropriate: GrandQC outputs on frozen sections req
 
 ## Darkspot / Foreign-Object Failure Mode
 
-The LUAD slide `TCGA-05-4425-01Z-00-DX1` has previously shown very high class-3 darkspot/foreign-object burden. The failure-mode notebook tests channel order, MPP scale, and morphology. Until that notebook is run and reviewed, this slide should be treated as a known stress case for the darkspot/foreign-object class.
+The LUAD slide `TCGA-05-4425-01Z-00-DX1` and the COAD dashboard example `TCGA-AA-3506-01Z-00-DX1` have shown high class-3 darkspot/foreign-object burden on visually clean tissue. The failure-mode notebook tests channel order, MPP scale, and morphology. Until that notebook is run and reviewed, these slides should be treated as known stress cases for the darkspot/foreign-object class.
 
 If the notebook demonstrates a true channel-order or MPP bug, the inference fix should be proposed separately with before/after evidence. The validated inference path should not be silently edited as part of the validation study.
+
+
+## Validation Outlier
+
+`TCGA-AC-A62V-01Z-00-DX1` remains the lowest macro-Dice validation slide after the tissue fix because rare artifact classes disagree, even though pixel agreement and tissue-weighted Dice are high; this per-class discrepancy is under review rather than treated as a tissue-detection failure.
+
+## Cohort Recheck
+
+The stale 9-slide notebook cohort was rerun after the tissue-detection fix. Its unusable rate stayed at 6 / 9 (66.7%), so the high unusable rate in that cohort is driven by artifact-model outputs, not by the corrected tissue edge-tiling bug. The recheck lives in `outputs/cohort_recheck/` and should supersede the old notebook `cohort_qc_summary.parquet` for this cohort.
 
 ## Manual-Review Flag Rule
 
