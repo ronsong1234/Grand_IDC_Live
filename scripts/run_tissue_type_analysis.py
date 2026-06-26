@@ -63,7 +63,10 @@ def load_inputs(paths: list[Path]) -> pd.DataFrame:
     for path in paths:
         if path.is_dir():
             for child in sorted(path.rglob("summary.json")):
-                frames.append(pd.DataFrame([pd.read_json(child, typ="series").to_dict()]))
+                row = pd.read_json(child, typ="series").to_dict()
+                if isinstance(row.get("artifact_fractions"), dict):
+                    row.update(row.pop("artifact_fractions"))
+                frames.append(pd.DataFrame([row]))
             for child in sorted(path.rglob("*summary*.parquet")):
                 frames.append(pd.read_parquet(child))
             for child in sorted(path.rglob("*summary*.csv")):
