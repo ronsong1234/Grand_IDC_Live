@@ -1,0 +1,7 @@
+{
+  "reference_dir": "data/reference_brca/reference_masks",
+  "prediction_dir": "data/reference_brca/predicted_masks",
+  "run_inference": false,
+  "artifact_mpp": 1.5,
+  "slide_count": 5
+}
