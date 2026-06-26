@@ -48,3 +48,21 @@ The flag is a review prompt, not a diagnosis. It is intended to catch possible f
 ## Reporting Principle
 
 Headline Dice should always be reported as mean plus standard deviation, with a background-excluded variant. Background and normal tissue can dominate whole-slide masks, so rare artifact classes must be shown in the per-class table instead of hidden behind a high macro score.
+
+## Regression Cause And Fix: Tissue Detection On Small Thumbnails
+
+The validation harness caught an upstream tissue-detection regression. Three of the five BRCA reference slides initially collapsed because the wrapper padded partial tissue-detection tiles from the top-left, while the GrandQC reference script crops right/bottom edge tiles from `width - 512` and `height - 512`. On smaller tissue thumbnails this changed the model input enough that tissue detection returned almost no class-1 normal tissue. The artifact model then saw background instead of tissue.
+
+The surgical fix mirrors GrandQC's reference edge-crop behavior for tissue detection only. Artifact model loading, artifact inference, label mapping, and artifact scoring were not changed.
+
+Before/after evidence:
+
+| slide_id | before_agreement | after_agreement | ref_normal_tissue_px | before_normal_tissue_px | after_normal_tissue_px |
+|:---|---:|---:|---:|---:|---:|
+| TCGA-A8-A0AB-01Z-00-DX1 | 0.999981 | 0.995223 | 10482410 | 10481961 | 10371697 |
+| TCGA-AC-A23C-01Z-00-DX1 | 0.059034 | 0.962273 | 6118045 | 13 | 6294950 |
+| TCGA-AC-A23G-01Z-00-DX1 | 0.161158 | 0.930329 | 3030150 | 0 | 3937143 |
+| TCGA-AC-A62V-01Z-00-DX1 | 0.071517 | 0.960222 | 7298700 | 0 | 7926342 |
+| TCGA-MS-A51U-01Z-00-DX1 | 0.999948 | 0.976861 | 15559674 | 15558591 | 15078113 |
+
+After the fix, the corrected validation headline is macro Dice `0.712024 +/- 0.141771`, background-excluded macro Dice `0.654914 +/- 0.164388`, and tissue-weighted Dice `0.958583` across the five BRCA DX reference slides. This is intentionally reported honestly rather than rounded to the earlier informal 0.999 claim.

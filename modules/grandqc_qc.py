@@ -57,6 +57,8 @@ ENCODER_NAME = "timm-efficientnet-b0"
 ENCODER_WEIGHTS = "imagenet"
 BACKGROUND_CLASS = 7
 MIN_TISSUE_PIXELS_PER_TILE = 50
+TISSUE_SUSPECT_MAX_FRACTION = 0.002
+FOREGROUND_SUSPECT_MIN_FRACTION = 0.02
 DEFAULT_USABILITY_ARTIFACT_THRESHOLD = 0.20
 DEFAULT_OUTPUT_DIR = Path("grandqc_idc_output")
 # Keep production inference aligned with GrandQC's reference scripts, which use
@@ -522,6 +524,7 @@ def score_slide(
         artifact_mpp=artifact_mpp,
         usability_artifact_threshold=usability_artifact_threshold,
     )
+    summary = _add_tissue_detection_guardrail(slide, tissue_mask, summary)
     return QCResult(slide.slide_id, summary, tile_df, result_mask)
 
 
@@ -787,18 +790,63 @@ def _run_tissue_detection(slide: SlideLike, tissue_model: Any, preprocessing_fn:
     width, height = thumb.size
     mask = np.ones((height, width), dtype=np.uint8)
 
-    for y in range(0, height, MODEL_TILE_SIZE):
-        for x in range(0, width, MODEL_TILE_SIZE):
-            tile = _crop_or_pad(thumb, x, y, MODEL_TILE_SIZE)
+    wi_n = width // MODEL_TILE_SIZE
+    he_n = height // MODEL_TILE_SIZE
+    overhang_w = width - wi_n * MODEL_TILE_SIZE
+    overhang_h = height - he_n * MODEL_TILE_SIZE
+
+    for h in range(he_n + 1):
+        for w in range(wi_n + 1):
+            tile = _crop_grandqc_reference_tile(thumb, w, h, wi_n, he_n)
             image_pre = _preprocess(tile, preprocessing_fn)
             x_tensor = torch.from_numpy(image_pre).to(device).unsqueeze(0)
             with torch.no_grad():
                 prediction = tissue_model.predict(x_tensor)
             patch_mask = np.argmax(prediction.squeeze().cpu().numpy(), axis=0).astype(np.uint8)
-            crop_h = min(MODEL_TILE_SIZE, height - y)
-            crop_w = min(MODEL_TILE_SIZE, width - x)
-            mask[y : y + crop_h, x : x + crop_w] = patch_mask[:crop_h, :crop_w]
+            x0, y0, x1, y1, sx0, sy0 = _grandqc_reference_tile_write_window(
+                w,
+                h,
+                wi_n,
+                he_n,
+                width,
+                height,
+                overhang_w,
+                overhang_h,
+            )
+            mask[y0:y1, x0:x1] = patch_mask[sy0 : sy0 + (y1 - y0), sx0 : sx0 + (x1 - x0)]
     return mask
+
+
+def debug_tissue_detection(slide: SlideLike, tissue_model: Any, preprocessing_fn: Any, device: str) -> dict[str, Any]:
+    """Return tissue-detection diagnostics without running artifact inference."""
+
+    tissue_mask = _run_tissue_detection(slide, tissue_model, preprocessing_fn, device)
+    reduction = TISSUE_MPP / _isotropic_mpp(slide)
+    thumb_w = max(1, int(round(slide.width / reduction)))
+    thumb_h = max(1, int(round(slide.height / reduction)))
+    thumb = _make_thumbnail_streamed(slide, thumb_w, thumb_h)
+    foreground_fraction = _thumbnail_foreground_fraction(thumb)
+    tissue_px = int(np.count_nonzero(tissue_mask == 0))
+    total_px = int(tissue_mask.size)
+    return {
+        "slide_id": slide.slide_id,
+        "width_px": slide.width,
+        "height_px": slide.height,
+        "mpp_x_um": slide.mpp_x,
+        "mpp_y_um": slide.mpp_y,
+        "isotropic_mpp_um": _isotropic_mpp(slide),
+        "tissue_mpp_um": TISSUE_MPP,
+        "tissue_reduction": reduction,
+        "thumbnail_width_px": thumb_w,
+        "thumbnail_height_px": thumb_h,
+        "thumbnail_foreground_fraction": foreground_fraction,
+        "tissue_mask_width_px": int(tissue_mask.shape[1]),
+        "tissue_mask_height_px": int(tissue_mask.shape[0]),
+        "tissue_mask_tissue_px": tissue_px,
+        "tissue_mask_total_px": total_px,
+        "tissue_mask_tissue_fraction": tissue_px / total_px if total_px else 0.0,
+        "tissue_detection_suspect": _is_tissue_detection_suspect(tissue_mask, foreground_fraction),
+    }
 
 
 def _make_thumbnail_streamed(slide: SlideLike, thumb_w: int, thumb_h: int, chunk_px: int = 4096) -> Image.Image:
@@ -821,6 +869,62 @@ def _make_thumbnail_streamed(slide: SlideLike, thumb_w: int, thumb_h: int, chunk
                 (paste_x, paste_y),
             )
     return thumbnail
+
+
+def _crop_grandqc_reference_tile(
+    image: Image.Image,
+    tile_x: int,
+    tile_y: int,
+    last_x: int,
+    last_y: int,
+) -> Image.Image:
+    """Crop tissue-detection tiles like GrandQC's reference OpenSlide script.
+
+    The original script always feeds a full 512 x 512 tile. For right/bottom
+    edges it anchors the crop at ``width - 512`` / ``height - 512`` instead of
+    padding the partial edge tile with white. This matters for small thumbnails.
+    """
+
+    p_s = MODEL_TILE_SIZE
+    if tile_x != last_x and tile_y != last_y:
+        box = (tile_x * p_s, tile_y * p_s, (tile_x + 1) * p_s, (tile_y + 1) * p_s)
+    elif tile_x == last_x and tile_y != last_y:
+        box = (image.width - p_s, tile_y * p_s, image.width, (tile_y + 1) * p_s)
+    elif tile_x != last_x and tile_y == last_y:
+        box = (tile_x * p_s, image.height - p_s, (tile_x + 1) * p_s, image.height)
+    else:
+        box = (image.width - p_s, image.height - p_s, image.width, image.height)
+    return image.crop(box).convert(PRODUCTION_COLOR_MODE)
+
+
+def _grandqc_reference_tile_write_window(
+    tile_x: int,
+    tile_y: int,
+    last_x: int,
+    last_y: int,
+    width: int,
+    height: int,
+    overhang_w: int,
+    overhang_h: int,
+) -> tuple[int, int, int, int, int, int]:
+    p_s = MODEL_TILE_SIZE
+    if tile_x == last_x:
+        x0 = max(0, width - max(overhang_w, 0))
+        x1 = width
+        sx0 = p_s - max(overhang_w, 0)
+    else:
+        x0 = tile_x * p_s
+        x1 = min((tile_x + 1) * p_s, width)
+        sx0 = 0
+    if tile_y == last_y:
+        y0 = max(0, height - max(overhang_h, 0))
+        y1 = height
+        sy0 = p_s - max(overhang_h, 0)
+    else:
+        y0 = tile_y * p_s
+        y1 = min((tile_y + 1) * p_s, height)
+        sy0 = 0
+    return x0, y0, x1, y1, sx0, sy0
 
 
 def _run_artifact_detection(
@@ -940,6 +1044,49 @@ def _crop_or_pad(image: Image.Image, x: int, y: int, size: int) -> Image.Image:
     padded = Image.new(PRODUCTION_COLOR_MODE, (size, size), color=(255, 255, 255))
     padded.paste(crop, (0, 0))
     return padded
+
+
+def _add_tissue_detection_guardrail(slide: SlideLike, tissue_mask: np.ndarray, summary: pd.DataFrame) -> pd.DataFrame:
+    """Annotate summaries when tissue detection is suspiciously empty."""
+
+    out = summary.copy()
+    thumb_w = min(768, max(1, int(slide.width)))
+    thumb_h = max(1, int(round(slide.height * (thumb_w / slide.width))))
+    thumb = _make_thumbnail_streamed(slide, thumb_w, thumb_h)
+    foreground_fraction = _thumbnail_foreground_fraction(thumb)
+    tissue_fraction = float(np.count_nonzero(tissue_mask == 0) / tissue_mask.size) if tissue_mask.size else 0.0
+    suspect = _is_tissue_detection_suspect(tissue_mask, foreground_fraction)
+    reason = ""
+    if suspect:
+        reason = (
+            f"tissue detection fraction {tissue_fraction:.6f} <= {TISSUE_SUSPECT_MAX_FRACTION:.6f} "
+            f"while thumbnail foreground fraction {foreground_fraction:.6f} >= {FOREGROUND_SUSPECT_MIN_FRACTION:.6f}"
+        )
+        LOGGER.warning("Tissue detection suspect for %s: %s", slide.slide_id, reason)
+    out["tissue_detection_suspect"] = bool(suspect)
+    out["tissue_detection_reason"] = reason
+    out["tissue_detection_tissue_fraction"] = tissue_fraction
+    out["thumbnail_foreground_fraction"] = foreground_fraction
+    return out
+
+
+def _is_tissue_detection_suspect(tissue_mask: np.ndarray, foreground_fraction: float) -> bool:
+    tissue_fraction = float(np.count_nonzero(tissue_mask == 0) / tissue_mask.size) if tissue_mask.size else 0.0
+    return tissue_fraction <= TISSUE_SUSPECT_MAX_FRACTION and foreground_fraction >= FOREGROUND_SUSPECT_MIN_FRACTION
+
+
+def _thumbnail_foreground_fraction(image: Image.Image) -> float:
+    """Cheap non-white foreground estimate for suspect tissue-detection guardrail."""
+
+    arr = np.asarray(image.convert(PRODUCTION_COLOR_MODE)).astype(np.int16)
+    # Tissue and stains are usually non-white and chromatic; ignore pale slide background.
+    max_channel = arr.max(axis=2)
+    min_channel = arr.min(axis=2)
+    chroma = max_channel - min_channel
+    nonwhite = max_channel < 235
+    saturated = chroma > 12
+    foreground = nonwhite & saturated
+    return float(np.mean(foreground)) if foreground.size else 0.0
 
 
 def _jpeg_roundtrip(image: Image.Image, quality: int) -> Image.Image:

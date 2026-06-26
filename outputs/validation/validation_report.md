@@ -7,34 +7,34 @@ This validation compares the GrandQC-IDC direct-DICOM output masks against five 
 ## Headline Results
 
 - Slides validated: 5 BRCA DX slides.
-- Macro Dice across all classes: 0.417251 +/- 0.530984.
-- Macro Dice excluding background: 0.401734 +/- 0.544912.
-- Tissue-class macro Dice: 0.401734.
-- Worst slide by macro Dice: TCGA-AC-A62V-01Z-00-DX1 (0.019785).
-- Worst class by mean Dice: pen_marking (0.248895).
+- Macro Dice across all classes: 0.712024 +/- 0.141771.
+- Macro Dice excluding background: 0.654914 +/- 0.164388.
+- Tissue-class macro Dice: 0.654914.
+- Worst slide by macro Dice: TCGA-AC-A62V-01Z-00-DX1 (0.471099).
+- Worst class by mean Dice: out_of_focus (0.224835).
 - Confusion-matrix valid pixels: 117,964,800.
 
 ## Per-Slide Summary
 
 | slide_id                |   valid_px |   ignored_px |   pixel_agreement |   macro_dice |   macro_dice_excluding_background |   tissue_weighted_dice |
 |:------------------------|-----------:|-------------:|------------------:|-------------:|----------------------------------:|-----------------------:|
-| TCGA-A8-A0AB-01Z-00-DX1 |   31457280 |      5085110 |          0.999981 |     0.998431 |                          0.998119 |               0.999953 |
-| TCGA-AC-A23C-01Z-00-DX1 |   12582912 |      1539352 |          0.059034 |     0.028647 |                          0.011404 |               0.000439 |
-| TCGA-AC-A23G-01Z-00-DX1 |    7864320 |      2045411 |          0.161158 |     0.040100 |                          0.000000 |               0.000000 |
-| TCGA-AC-A62V-01Z-00-DX1 |   18874368 |       895102 |          0.071517 |     0.019785 |                          0.000000 |               0.000000 |
-| TCGA-MS-A51U-01Z-00-DX1 |   47185920 |      3962344 |          0.999948 |     0.999289 |                          0.999150 |               0.999892 |
+| TCGA-A8-A0AB-01Z-00-DX1 |   31457280 |      5085110 |          0.995223 |     0.744941 |                          0.694622 |               0.992343 |
+| TCGA-AC-A23C-01Z-00-DX1 |   12582912 |      1539352 |          0.962273 |     0.737549 |                          0.692359 |               0.961376 |
+| TCGA-AC-A23G-01Z-00-DX1 |    7864320 |      2045411 |          0.930329 |     0.847799 |                          0.801634 |               0.916700 |
+| TCGA-AC-A62V-01Z-00-DX1 |   18874368 |       895102 |          0.960222 |     0.471099 |                          0.371911 |               0.953576 |
+| TCGA-MS-A51U-01Z-00-DX1 |   47185920 |      3962344 |          0.976861 |     0.758731 |                          0.714046 |               0.968921 |
 
 ## Per-Class Summary
 
 |   class_id | class_name              |   dice_mean |   dice_std |   iou_mean |   reference_px |
 |-----------:|:------------------------|------------:|-----------:|-----------:|---------------:|
-|          4 | pen_marking             |    0.248895 |   0.497790 |   0.247799 |          15954 |
-|          5 | edge_air_bubble         |    0.249960 |   0.499919 |   0.249919 |        3620494 |
-|          2 | fold                    |    0.399386 |   0.546883 |   0.398775 |         241438 |
-|          6 | out_of_focus            |    0.399704 |   0.547317 |   0.399408 |         408672 |
-|          1 | normal_tissue           |    0.399984 |   0.547699 |   0.399967 |       42488979 |
-|          3 | darkspot_foreign_object |    0.412796 |   0.534746 |   0.405313 |          45848 |
-|          7 | background              |    0.510257 |   0.450993 |   0.461670 |       71143415 |
+|          6 | out_of_focus            |    0.224835 |   0.449670 |   0.204273 |         408672 |
+|          3 | darkspot_foreign_object |    0.416655 |   0.485255 |   0.360935 |          45848 |
+|          4 | pen_marking             |    0.552746 |   0.480813 |   0.473770 |          15954 |
+|          2 | fold                    |    0.801438 |   0.086832 |   0.675689 |         241438 |
+|          5 | edge_air_bubble         |    0.927327 | nan        |   0.864500 |        3620494 |
+|          1 | normal_tissue           |    0.961848 |   0.029446 |   0.927723 |       42488979 |
+|          7 | background              |    0.969872 |   0.021186 |   0.942162 |       71143415 |
 
 ## Confusion Matrix
 
@@ -42,14 +42,28 @@ The normalized confusion matrix is saved as `confusion_matrix.parquet` and `conf
 
 | reference_class         |   normal_tissue |     fold |   darkspot_foreign_object |   pen_marking |   edge_air_bubble |   out_of_focus |   background |
 |:------------------------|----------------:|---------:|--------------------------:|--------------:|------------------:|---------------:|-------------:|
-| normal_tissue           |        0.612868 | 0.000009 |                  0.004686 |      0.014964 |          0.050265 |       0.001500 |     0.315708 |
-| fold                    |        0.000000 | 0.335378 |                  0.000000 |      0.018158 |          0.075759 |       0.005393 |     0.565313 |
-| darkspot_foreign_object |        0.000044 | 0.000000 |                  0.355981 |      0.226051 |          0.030187 |       0.000000 |     0.387738 |
-| pen_marking             |        0.000000 | 0.000000 |                  0.003447 |      0.035289 |          0.014040 |       0.000000 |     0.947223 |
-| edge_air_bubble         |        0.000054 | 0.000000 |                  0.000000 |      0.000000 |          0.999882 |       0.000040 |     0.000024 |
-| out_of_focus            |        0.000078 | 0.000000 |                  0.000000 |      0.000000 |          0.000132 |       0.999743 |     0.000046 |
-| background              |        0.000003 | 0.000001 |                  0.001379 |      0.238322 |          0.027769 |       0.003948 |     0.728578 |
+| normal_tissue           |        0.980157 | 0.000258 |                  0.000230 |      0.000072 |          0.000731 |       0.000431 |     0.018122 |
+| fold                    |        0.058620 | 0.841541 |                  0.000017 |      0.000000 |          0.000000 |       0.000000 |     0.099823 |
+| darkspot_foreign_object |        0.051802 | 0.000000 |                  0.863157 |      0.002705 |          0.000000 |       0.000000 |     0.082337 |
+| pen_marking             |        0.006393 | 0.000000 |                  0.065501 |      0.922715 |          0.000000 |       0.000000 |     0.005390 |
+| edge_air_bubble         |        0.005182 | 0.000000 |                  0.000000 |      0.000000 |          0.886591 |       0.001946 |     0.106281 |
+| out_of_focus            |        0.027702 | 0.000002 |                  0.000000 |      0.000000 |          0.012829 |       0.897654 |     0.061812 |
+| background              |        0.021450 | 0.000205 |                  0.000872 |      0.000000 |          0.000790 |       0.000215 |     0.976468 |
 
 ## Interpretation
 
 The headline Dice is reported with mean and standard deviation, plus a background-excluded variant, because background and normal tissue can dominate whole-slide masks. Rare artifact classes should be interpreted from the per-class table rather than hidden behind the macro headline.
+
+## Regression Cause And Fix
+
+The validation harness caught a real upstream tissue-detection failure. The previous wrapper padded partial tissue-detection tiles from the top-left, while GrandQC's reference script crops right/bottom edge tiles from `width - 512` and `height - 512`, always feeding a full 512 x 512 tile. On smaller tissue thumbnails this caused tissue detection to return almost no class-1 normal tissue, so downstream artifact scoring saw background instead of tissue.
+
+The fix mirrors GrandQC's reference edge-crop behavior in tissue detection only. Artifact model loading, artifact inference, label mapping, and artifact scoring were not changed.
+
+| slide_id                |   before_agreement |   after_agreement |   ref_normal_tissue_px |   before_normal_tissue_px |   after_normal_tissue_px |   before_background_px |   after_background_px |
+|:------------------------|-------------------:|------------------:|-----------------------:|--------------------------:|-------------------------:|-----------------------:|----------------------:|
+| TCGA-A8-A0AB-01Z-00-DX1 |           0.999981 |          0.995223 |               10482410 |                  10481961 |                 10371697 |               20893527 |              26115540 |
+| TCGA-AC-A23C-01Z-00-DX1 |           0.059034 |          0.962273 |                6118045 |                        13 |                  6294950 |                4689165 |               7712802 |
+| TCGA-AC-A23G-01Z-00-DX1 |           0.161158 |          0.930329 |                3030150 |                         0 |                  3937143 |                4196150 |               5972033 |
+| TCGA-AC-A62V-01Z-00-DX1 |           0.071517 |          0.960222 |                7298700 |                         0 |                  7926342 |                8046071 |              11655608 |
+| TCGA-MS-A51U-01Z-00-DX1 |           0.999948 |          0.976861 |               15559674 |                  15558591 |                 15078113 |               27592219 |              32357902 |

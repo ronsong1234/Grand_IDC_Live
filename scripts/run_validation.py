@@ -10,20 +10,26 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from modules.validation import (
     ARTIFACT_CLASSES,
+    align_prediction_to_reference,
     aggregate_validation,
     discover_mask_pairs,
     extract_tcga_slide_id,
+    load_label_mask,
 )
 
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
 REFERENCE_DIR = REPO_ROOT / "data" / "reference_brca" / "reference_masks"
 PREDICTION_DIR = REPO_ROOT / "data" / "reference_brca" / "predicted_masks"
 OUTPUT_DIR = REPO_ROOT / "outputs" / "validation"
@@ -44,8 +50,9 @@ def main() -> None:
     per_class.to_parquet(output_dir / "validation_per_class.parquet", index=False)
     confusion_norm.to_parquet(output_dir / "confusion_matrix.parquet", index=False)
     np.save(output_dir / "confusion_matrix_raw.npy", confusion_raw)
+    before_after = write_before_after_table(args.reference_dir, args.baseline_prediction_dir, prediction_dir, output_dir)
     write_confusion_heatmap(confusion_norm, output_dir / "confusion_matrix.png")
-    write_report(per_slide, per_class, confusion_norm, confusion_raw, output_dir / "validation_report.md", pairs)
+    write_report(per_slide, per_class, confusion_norm, confusion_raw, output_dir / "validation_report.md", pairs, before_after)
     metadata = {
         "reference_dir": relative(args.reference_dir),
         "prediction_dir": relative(prediction_dir),
@@ -61,6 +68,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--reference-dir", type=Path, default=REFERENCE_DIR)
     parser.add_argument("--prediction-dir", type=Path, default=PREDICTION_DIR)
+    parser.add_argument("--baseline-prediction-dir", type=Path, default=PREDICTION_DIR)
     parser.add_argument("--output-dir", type=Path, default=OUTPUT_DIR)
     parser.add_argument("--artifact-mpp", type=float, default=1.5)
     parser.add_argument("--run-inference", action="store_true", help="Regenerate prediction masks through direct-DICOM GrandQC.")
@@ -126,6 +134,7 @@ def write_report(
     confusion_raw: np.ndarray,
     path: Path,
     pairs: list,
+    before_after: pd.DataFrame | None = None,
 ) -> None:
     slide_mean = per_slide["macro_dice"].mean()
     slide_std = per_slide["macro_dice"].std(ddof=1)
@@ -178,7 +187,55 @@ def write_report(
         "The headline Dice is reported with mean and standard deviation, plus a background-excluded variant, because background and normal tissue can dominate whole-slide masks. Rare artifact classes should be interpreted from the per-class table rather than hidden behind the macro headline.",
         "",
     ]
+    if before_after is not None and not before_after.empty:
+        lines.extend(
+            [
+                "## Regression Cause And Fix",
+                "",
+                "The validation harness caught a real upstream tissue-detection failure. The previous wrapper padded partial tissue-detection tiles from the top-left, while GrandQC's reference script crops right/bottom edge tiles from `width - 512` and `height - 512`, always feeding a full 512 x 512 tile. On smaller tissue thumbnails this caused tissue detection to return almost no class-1 normal tissue, so downstream artifact scoring saw background instead of tissue.",
+                "",
+                "The fix mirrors GrandQC's reference edge-crop behavior in tissue detection only. Artifact model loading, artifact inference, label mapping, and artifact scoring were not changed.",
+                "",
+                before_after.to_markdown(index=False, floatfmt=".6f"),
+                "",
+            ]
+        )
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_before_after_table(reference_dir: Path, before_dir: Path, after_dir: Path, output_dir: Path) -> pd.DataFrame | None:
+    """Compare cached old predictions with regenerated predictions when both exist."""
+
+    if before_dir.resolve() == after_dir.resolve() or not before_dir.exists() or not after_dir.exists():
+        return None
+    refs = {extract_tcga_slide_id(path): path for path in sorted(reference_dir.glob("*.png"))}
+    before = {extract_tcga_slide_id(path): path for path in sorted(before_dir.glob("*.png"))}
+    after = {extract_tcga_slide_id(path): path for path in sorted(after_dir.glob("*.png"))}
+    shared = sorted(set(refs) & set(before) & set(after))
+    if not shared:
+        return None
+    rows = []
+    for slide_id in shared:
+        reference = load_label_mask(refs[slide_id])
+        old = align_prediction_to_reference(reference, load_label_mask(before[slide_id]))
+        new = align_prediction_to_reference(reference, load_label_mask(after[slide_id]))
+        valid_old = np.isin(reference, range(1, 8)) & np.isin(old, range(1, 8))
+        valid_new = np.isin(reference, range(1, 8)) & np.isin(new, range(1, 8))
+        rows.append(
+            {
+                "slide_id": slide_id,
+                "before_agreement": float((reference[valid_old] == old[valid_old]).mean()),
+                "after_agreement": float((reference[valid_new] == new[valid_new]).mean()),
+                "ref_normal_tissue_px": int((reference == 1).sum()),
+                "before_normal_tissue_px": int((old == 1).sum()),
+                "after_normal_tissue_px": int((new == 1).sum()),
+                "before_background_px": int((old == 7).sum()),
+                "after_background_px": int((new == 7).sum()),
+            }
+        )
+    df = pd.DataFrame(rows)
+    df.to_parquet(output_dir / "tissue_detection_before_after.parquet", index=False)
+    return df
 
 
 def relative(path: Path) -> str:

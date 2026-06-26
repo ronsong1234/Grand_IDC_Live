@@ -186,15 +186,17 @@ function renderResults() {
     const card = document.createElement('article');
     card.className = 'result-card';
     const flag = result.qc_flag_review ? `<span class="badge review">review</span>` : '';
+    const tissueFlag = result.tissue_detection_suspect ? `<span class="badge review">tissue check</span>` : '';
     const usable = result.usable ? '<span class="badge done">usable</span>' : '<span class="badge fail">not usable</span>';
     card.innerHTML = `
-      <header><h3>${result.slide_id}</h3><div>${usable}${flag}</div></header>
+      <header><h3>${result.slide_id}</h3><div>${usable}${flag}${tissueFlag}</div></header>
       <div class="metrics">
         <span>Tissue ${(result.tissue_percentage * 100).toFixed(2)}%</span>
         <span>Artifact ${(result.artifact_percentage_of_tissue * 100).toFixed(2)}%</span>
         <span>${result.reader_path_used}</span>
       </div>
       ${result.qc_flag_review ? `<p class="review-note">${result.qc_flag_reason}</p>` : ''}
+      ${result.tissue_detection_suspect ? `<p class="review-note">${result.tissue_detection_reason}</p>` : ''}
       <div class="images">
         ${imageBlock('Mask', result.artifact_urls.mask)}
         ${imageBlock('Overlay', result.artifact_urls.overlay)}
