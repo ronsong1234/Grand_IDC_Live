@@ -164,7 +164,7 @@ def write_report(
         f"- Macro Dice across all classes: {slide_mean:.6f} +/- {slide_std:.6f}.",
         f"- Macro Dice excluding background: {no_bg_mean:.6f} +/- {no_bg_std:.6f}.",
         f"- Tissue-class macro Dice: {tissue_macro:.6f}.",
-        f"- Worst slide by macro Dice: {min_slide['slide_id']} ({min_slide['macro_dice']:.6f}).",
+        f"- Worst slide by macro Dice: {min_slide['slide_id']} ({min_slide['macro_dice']:.6f}); inspect per-class rows before treating this as a whole-slide failure.",
         f"- Worst class by mean Dice: {worst_class['class_name']} ({worst_class['dice_mean']:.6f}).",
         f"- Confusion-matrix valid pixels: {total_valid:,}.",
         "",
@@ -184,7 +184,7 @@ def write_report(
         "",
         "## Interpretation",
         "",
-        "The headline Dice is reported with mean and standard deviation, plus a background-excluded variant, because background and normal tissue can dominate whole-slide masks. Rare artifact classes should be interpreted from the per-class table rather than hidden behind the macro headline.",
+        "The headline Dice is reported with mean and standard deviation, plus a background-excluded variant, because background and normal tissue can dominate whole-slide masks. Rare artifact classes should be interpreted from the per-class table rather than hidden behind the macro headline. The current A62V outlier has high pixel/tissue-weighted agreement but low macro Dice because rare artifact classes differ.",
         "",
     ]
     if before_after is not None and not before_after.empty:

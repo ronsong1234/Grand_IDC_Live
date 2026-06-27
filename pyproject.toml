@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: requires GrandQC checkpoints and a local GPU/torch inference environment",
+    "validation: checks saved validation outputs against documented thresholds",
+]

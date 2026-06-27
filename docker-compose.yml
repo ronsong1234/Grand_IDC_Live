@@ -1,0 +1,12 @@
+services:
+  grandqc-live:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      GRANDQC_LIVE_OUTPUT_DIR: /app/web/output
+      GRANDQC_RETAIN_RAW_INPUTS: "0"
+    volumes:
+      - ./web/output:/app/web/output
+      - ./web/state:/app/web/state
+      - ./grandqc/01_WSI_inference_OPENSLIDE_QC/models:/app/grandqc/01_WSI_inference_OPENSLIDE_QC/models:ro

@@ -1,8 +1,8 @@
 # GrandQC Direct-DICOM Batch Validation
 
-**Date:** 2026-06-25  
-**Pipeline:** GrandQC direct-DICOM wrapper (Grand_IDC_Live)  
-**IDC Version:** v24  
+**Date:** 2026-06-25
+**Pipeline:** GrandQC direct-DICOM wrapper (Grand_IDC_Live)
+**IDC Version:** v24
 
 ---
 
@@ -15,8 +15,8 @@
 | Slides failed | 0 |
 | TCGA collections | 5 (tcga_brca, tcga_coad, tcga_esca, tcga_kirc, tcga_luad) |
 | Usable slides (artifact < 20%) | 9 / 15 |
-| Mean tissue coverage | 40.5% ± 15.8% |
-| Mean artifact fraction of tissue | 21.8% ± 29.6% |
+| Mean tissue coverage | 40.5% Ã‚Â± 15.8% |
+| Mean artifact fraction of tissue | 21.8% Ã‚Â± 29.6% |
 
 ---
 
@@ -50,5 +50,11 @@ and per-class artifact fractions reported above are the direct output of the Gra
 
 The pixel-level fidelity of this pipeline to GrandQC reference masks is documented
 separately in `docs/pipeline_fidelity_validation.md`, where the direct-DICOM wrapper
-achieves ≥ 99.99% pixel agreement and Dice ≥ 0.9956 across all artifact classes
+achieved >= 99.99% pixel agreement and Dice >= 0.9956 across all present classes in the historical two-slide fidelity subset
 on two TCGA-BRCA DX reference slides.
+
+
+## Darkspot Audit Note
+
+The high darkspot/foreign-object slides in this batch are successful pipeline runs, but they remain a model-behavior audit target. Review
+otebooks/failure_mode_darkspot.ipynb before treating those calls as confirmed artifacts.

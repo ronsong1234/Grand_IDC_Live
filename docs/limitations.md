@@ -56,7 +56,7 @@ The flag is a review prompt, not a diagnosis. It is intended to catch possible f
 
 ## Reporting Principle
 
-Headline Dice should always be reported as mean plus standard deviation, with a background-excluded variant. Background and normal tissue can dominate whole-slide masks, so rare artifact classes must be shown in the per-class table instead of hidden behind a high macro score.
+Headline Dice should always be reported as mean plus standard deviation, with a background-excluded variant. Background and normal tissue can dominate whole-slide masks, so rare artifact classes must be shown in the per-class table instead of hidden behind a high macro score. The canonical metric definitions live in `docs/metric_guide.md`.
 
 ## Regression Cause And Fix: Tissue Detection On Small Thumbnails
 

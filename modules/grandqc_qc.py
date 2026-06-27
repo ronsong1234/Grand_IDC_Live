@@ -1037,14 +1037,6 @@ def _preprocess(image: Image.Image, preprocessing_fn: Any) -> np.ndarray:
     return arr.transpose(2, 0, 1).astype("float32")
 
 
-def _crop_or_pad(image: Image.Image, x: int, y: int, size: int) -> Image.Image:
-    crop = image.crop((x, y, min(x + size, image.width), min(y + size, image.height))).convert(PRODUCTION_COLOR_MODE)
-    if crop.size == (size, size):
-        return crop
-    padded = Image.new(PRODUCTION_COLOR_MODE, (size, size), color=(255, 255, 255))
-    padded.paste(crop, (0, 0))
-    return padded
-
 
 def _add_tissue_detection_guardrail(slide: SlideLike, tissue_mask: np.ndarray, summary: pd.DataFrame) -> pd.DataFrame:
     """Annotate summaries when tissue detection is suspiciously empty."""

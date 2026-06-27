@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from .config import FRONTEND_DIR, ensure_directories
 from .idc_catalog import list_collections, list_slides
 from .jobs import JOB_STORE
-from .qc_runner import artifact_path, result_for_slide_id
+from .qc_runner import AmbiguousResultError, artifact_path, result_for_slide_id
 from .schemas import BatchStatus, CollectionsResponse, JobCreateRequest, JobCreateResponse, JobStatus, SlidesResponse, SummaryResponse
 
 ensure_directories()
@@ -63,7 +63,10 @@ def api_batch(batch_id: str):
 
 @app.get("/api/results/{slide_id}/summary", response_model=SummaryResponse)
 def api_summary(slide_id: str):
-    result = result_for_slide_id(slide_id)
+    try:
+        result = result_for_slide_id(slide_id)
+    except AmbiguousResultError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if result is None:
         raise HTTPException(status_code=404, detail="Summary not found")
     return {"slide_id": slide_id, "summary": result}
@@ -71,7 +74,10 @@ def api_summary(slide_id: str):
 
 @app.get("/api/results/{slide_id}/{artifact_name}")
 def api_artifact(slide_id: str, artifact_name: str):
-    path = artifact_path(slide_id, artifact_name)
+    try:
+        path = artifact_path(slide_id, artifact_name)
+    except AmbiguousResultError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     if path is None or not path.exists():
         raise HTTPException(status_code=404, detail="Artifact not found")
     media_type = "image/jpeg" if path.suffix.lower() in {".jpg", ".jpeg"} else "image/png"

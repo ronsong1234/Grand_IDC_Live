@@ -34,6 +34,10 @@ from .idc_catalog import find_slide, safe_name, safe_slide_dir
 MODEL_CACHE: dict[tuple[float, str], tuple[Any, Any, Any]] = {}
 
 
+class AmbiguousResultError(RuntimeError):
+    """Raised when one TCGA slide id maps to multiple local result folders."""
+
+
 def run_slide_job(
     *,
     collection_id: str,
@@ -211,21 +215,30 @@ def load_result(slide_dir: Path) -> dict[str, Any]:
 
 
 def result_for_slide_id(slide_id: str) -> dict[str, Any] | None:
-    matches = list(OUTPUT_DIR.glob(f"*/{safe_name(slide_id)}/summary.json"))
-    if not matches:
+    slide_dir = result_dir_for_slide_id(slide_id)
+    if slide_dir is None:
         return None
-    return json.loads(matches[0].read_text(encoding="utf-8"))
+    return json.loads((slide_dir / "summary.json").read_text(encoding="utf-8"))
 
 
 def artifact_path(slide_id: str, artifact_name: str) -> Path | None:
     if artifact_name not in ARTIFACT_FILE_MAP:
         return None
-    matches = list(OUTPUT_DIR.glob(f"*/{safe_name(slide_id)}"))
-    if not matches:
+    slide_dir = result_dir_for_slide_id(slide_id)
+    if slide_dir is None:
         return None
-    path = matches[0] / ARTIFACT_FILE_MAP[artifact_name].format(slide_id=safe_name(slide_id))
+    path = slide_dir / ARTIFACT_FILE_MAP[artifact_name].format(slide_id=safe_name(slide_id))
     return path if path.exists() else None
 
+
+def result_dir_for_slide_id(slide_id: str) -> Path | None:
+    matches = sorted(path.parent for path in OUTPUT_DIR.glob(f"*/{safe_name(slide_id)}/summary.json"))
+    if not matches:
+        return None
+    if len(matches) > 1:
+        rels = ", ".join(rel_to_output(path) for path in matches)
+        raise AmbiguousResultError(f"Slide id {slide_id!r} has multiple local result folders: {rels}")
+    return matches[0]
 
 def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2), encoding="utf-8")

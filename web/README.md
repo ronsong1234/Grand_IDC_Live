@@ -18,4 +18,6 @@ The backend exposes:
 
 The frontend is plain HTML/CSS/JS mounted at `/`. It keeps selection state only in page memory and does not use localStorage or sessionStorage.
 
-Generated outputs are written under `web/output/<collection_id>/<slide_id>/`. Raw DICOM files are temporary and deleted unless `GRANDQC_RETAIN_RAW_INPUTS=1` is set.
+Generated outputs are written under `web/output/<collection_id>/<slide_id>/` by default. Raw DICOM files are temporary and deleted unless `GRANDQC_RETAIN_RAW_INPUTS=1` is set. Runtime configuration is documented in `docs/configuration.md`.
+
+Result lookup is by slide id. If the same slide id appears in multiple local collection folders, the API returns HTTP 409 instead of silently choosing one.
