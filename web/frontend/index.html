@@ -68,6 +68,16 @@
 
       <section class="panel">
         <h2>Results Gallery</h2>
+        <div class="legend" aria-label="GrandQC mask color legend">
+          <div class="legend-title">Mask / map legend</div>
+          <span><i style="--swatch:#808080"></i>Normal tissue</span>
+          <span><i style="--swatch:#ff6347"></i>Fold</span>
+          <span><i style="--swatch:#00ff00"></i>Darkspot / foreign object</span>
+          <span><i style="--swatch:#ff0000"></i>Pen marking</span>
+          <span><i style="--swatch:#ff00ff"></i>Edge / air bubble</span>
+          <span><i style="--swatch:#4b0082"></i>Out of focus</span>
+          <span><i class="swatch-border" style="--swatch:#ffffff"></i>Background</span>
+        </div>
         <div class="caveat">Review badge caveat: very high single-class burden, especially darkspot / foreign object, may be a model edge case and should be confirmed in IDC SLIM.</div>
         <div id="results" class="gallery"></div>
       </section>
@@ -78,6 +88,6 @@
     Validation context: direct-DICOM GrandQC has high pixel and tissue-weighted agreement on the 5-slide BRCA DX reference set; rare artifact classes drive macro-Dice disagreement.
   </footer>
 
-  <script src="/app.js?v=20260627-1"></script>
+  <script src="/app.js?v=20260630-legend1"></script>
 </body>
 </html>
