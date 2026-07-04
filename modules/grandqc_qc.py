@@ -80,6 +80,19 @@ CLASS_NAMES = {
 }
 ARTIFACT_CLASSES = (2, 3, 4, 5, 6)
 
+# RGB colors for visualizing integer class masks. Index 0 (unlabeled / off-slide
+# padding) is black; classes 1-7 follow GrandQC's wsi_colors.colors_QC7 palette.
+CLASS_COLORS: dict[int, tuple[int, int, int]] = {
+    0: (0, 0, 0),
+    1: (128, 128, 128),
+    2: (255, 99, 71),
+    3: (0, 255, 0),
+    4: (255, 0, 0),
+    5: (255, 0, 255),
+    6: (75, 0, 130),
+    7: (255, 255, 255),
+}
+
 
 @dataclass(frozen=True)
 class WeightSpec:
@@ -566,6 +579,43 @@ def summarize_mask(
     return pd.DataFrame([row])
 
 
+def colorize_mask(
+    mask: str | os.PathLike[str] | np.ndarray,
+    output_path: str | os.PathLike[str] | None = None,
+) -> np.ndarray:
+    """Map an integer GrandQC label mask (classes 0-7) to a visible RGB image.
+
+    Raw QC masks and pre-computed reference masks store integer class ids 0-7,
+    which render as near-black in ordinary image viewers. This maps each class to
+    a distinct color from :data:`CLASS_COLORS` (class 1 gray, 2 orange-red,
+    3 green, 4 red, 5 magenta, 6 indigo, 7 white; class 0 / off-slide black).
+
+    Parameters
+    ----------
+    mask:
+        Path to an integer label image (PNG/TIFF) or a 2D array of class ids. A
+        3D input (an already-expanded RGB PNG) uses its first channel.
+    output_path:
+        Optional path to save the RGB result as an image.
+
+    Returns
+    -------
+    np.ndarray
+        ``(H, W, 3)`` ``uint8`` RGB array.
+    """
+
+    labels = mask if isinstance(mask, np.ndarray) else np.asarray(Image.open(mask))
+    labels = np.asarray(labels)
+    if labels.ndim == 3:
+        labels = labels[..., 0]
+    rgb = np.zeros((labels.shape[0], labels.shape[1], 3), dtype=np.uint8)
+    for class_id, color in CLASS_COLORS.items():
+        rgb[labels == class_id] = color
+    if output_path is not None:
+        Image.fromarray(rgb).save(output_path)
+    return rgb
+
+
 def _load_models(artifact_mpp: float, device: str):
     import segmentation_models_pytorch as smp
     import torch
@@ -937,8 +987,6 @@ def _run_artifact_detection(
 ) -> tuple[np.ndarray, pd.DataFrame]:
     """Run GrandQC artifact segmentation and collect per-tile class fractions."""
 
-    import torch
-
     native_patch = max(1, int(artifact_mpp / _isotropic_mpp(slide) * MODEL_TILE_SIZE))
     patch_n_w = max(1, math.ceil(slide.width / native_patch))
     patch_n_h = max(1, math.ceil(slide.height / native_patch))
@@ -959,18 +1007,15 @@ def _run_artifact_detection(
                 wi * MODEL_TILE_SIZE : (wi + 1) * MODEL_TILE_SIZE,
             ]
             if int(np.count_nonzero(tile_tissue == 0)) > MIN_TISSUE_PIXELS_PER_TILE:
-                region = slide.read_region(
-                    (min(x, slide.width - 1), min(y, slide.height - 1)),
-                    0,
-                    (min(native_patch, slide.width - x), min(native_patch, slide.height - y)),
+                raw_mask = _predict_artifact_patch(
+                    slide,
+                    artifact_model,
+                    preprocessing_fn,
+                    device,
+                    x0=x,
+                    y0=y,
+                    native_patch=native_patch,
                 )
-                tile = region.resize((MODEL_TILE_SIZE, MODEL_TILE_SIZE), Image.Resampling.LANCZOS)
-                image_pre = _preprocess(tile, preprocessing_fn)
-                x_tensor = torch.from_numpy(image_pre).to(device).unsqueeze(0)
-                with torch.no_grad():
-                    prediction = artifact_model.predict(x_tensor)
-                raw_mask = np.argmax(prediction.squeeze().cpu().numpy(), axis=0).astype(np.uint8)
-                raw_mask = _grandqc_raw_to_documented_labels(raw_mask)
                 patch_mask = np.where(tile_tissue == 1, BACKGROUND_CLASS, raw_mask)
             else:
                 patch_mask = np.full((MODEL_TILE_SIZE, MODEL_TILE_SIZE), BACKGROUND_CLASS, dtype=np.uint8)
@@ -984,6 +1029,65 @@ def _run_artifact_detection(
     valid_h = max(1, int(round(slide.height * _isotropic_mpp(slide) / artifact_mpp)))
     valid_w = max(1, int(round(slide.width * _isotropic_mpp(slide) / artifact_mpp)))
     return full_mask[:valid_h, :valid_w], pd.DataFrame(tile_rows)
+
+
+def _anchored_start(grid_origin: int, window: int, extent: int) -> int:
+    """Return a read start that keeps a full ``window`` inside ``[0, extent)``.
+
+    At the far edge the window is shifted backwards to anchor at
+    ``extent - window`` instead of padding the incomplete tile. Clamped to a
+    non-negative start for the degenerate case where ``window >= extent``. This
+    mirrors the tissue-stage anchoring in ``_crop_grandqc_reference_tile``.
+    """
+
+    return max(0, min(grid_origin, extent - window))
+
+
+def _predict_artifact_patch(
+    slide: SlideLike,
+    artifact_model: Any,
+    preprocessing_fn: Any,
+    device: str,
+    *,
+    x0: int,
+    y0: int,
+    native_patch: int,
+) -> np.ndarray:
+    """Predict one 512x512 artifact class map for the grid cell at level-0 (x0, y0).
+
+    Edge cells are handled by BOUNDARY-ANCHORED shifting rather than partial-crop
+    upscaling. When the ``native_patch`` window would run past the right/bottom
+    edge, its read origin is shifted backwards to anchor at
+    ``slide.width - native_patch`` / ``slide.height - native_patch`` so a
+    complete, unpadded ``native_patch x native_patch`` block is read and resized
+    to 512x512. This avoids stretching a thin edge strip across the whole tile,
+    which made the artifact (downstream) model read edge tiles as background.
+
+    The prediction covers the anchored window, so it is realigned back to the
+    grid cell and any strip that falls outside the slide is set to background.
+    """
+
+    win_w = min(native_patch, slide.width)
+    win_h = min(native_patch, slide.height)
+    read_x = _anchored_start(x0, win_w, slide.width)
+    read_y = _anchored_start(y0, win_h, slide.height)
+
+    region = slide.read_region((read_x, read_y), 0, (win_w, win_h))
+    tile = region.resize((MODEL_TILE_SIZE, MODEL_TILE_SIZE), Image.Resampling.LANCZOS)
+    mask512 = _grandqc_raw_to_documented_labels(
+        _predict_raw_artifact_mask(artifact_model, preprocessing_fn, tile, device)
+    )
+
+    off_x = int(round((x0 - read_x) / win_w * MODEL_TILE_SIZE))
+    off_y = int(round((y0 - read_y) / win_h * MODEL_TILE_SIZE))
+    if off_x <= 0 and off_y <= 0:
+        return mask512
+
+    aligned = np.full((MODEL_TILE_SIZE, MODEL_TILE_SIZE), BACKGROUND_CLASS, dtype=np.uint8)
+    valid_w = MODEL_TILE_SIZE - off_x
+    valid_h = MODEL_TILE_SIZE - off_y
+    aligned[:valid_h, :valid_w] = mask512[off_y:MODEL_TILE_SIZE, off_x:MODEL_TILE_SIZE]
+    return aligned
 
 
 def _tile_summary(
