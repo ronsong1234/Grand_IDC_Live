@@ -449,8 +449,15 @@ def run_grandqc(
     usability_artifact_threshold: float = DEFAULT_USABILITY_ARTIFACT_THRESHOLD,
     device: str | None = None,
     slide_ids: Iterable[str] | None = None,
+    faithful_mode: bool = False,
 ) -> pd.DataFrame:
-    """Run GrandQC on slides and return/save a tidy per-slide summary."""
+    """Run GrandQC on slides and return/save a tidy per-slide summary.
+
+    ``faithful_mode`` (default False) is a validation switch: when True, edge
+    tiles use GrandQC's original pad-top-left convention instead of this module's
+    boundary-anchored shifting, so the output can be compared for near-identity
+    against GrandQC's reference masks. Leave it False for production QC.
+    """
 
     check_weights(artifact_mpp=artifact_mpp)
     out_dir = Path(output_dir)
@@ -478,6 +485,7 @@ def run_grandqc(
                 artifact_mpp=artifact_mpp,
                 device=device,
                 usability_artifact_threshold=usability_artifact_threshold,
+                faithful_mode=faithful_mode,
             )
             summaries.append(result.summary)
             if save_mask and result.mask is not None:
@@ -506,6 +514,7 @@ def score_slide(
     artifact_mpp: float,
     device: str,
     usability_artifact_threshold: float,
+    faithful_mode: bool = False,
 ) -> QCResult:
     """Score one slide and return summary, per-tile scores, and raw mask."""
 
@@ -526,6 +535,7 @@ def score_slide(
         preprocessing_fn,
         artifact_mpp,
         device,
+        faithful_mode=faithful_mode,
     )
     summary = summarize_mask(
         result_mask,
@@ -984,6 +994,7 @@ def _run_artifact_detection(
     preprocessing_fn: Any,
     artifact_mpp: float,
     device: str,
+    faithful_mode: bool = False,
 ) -> tuple[np.ndarray, pd.DataFrame]:
     """Run GrandQC artifact segmentation and collect per-tile class fractions."""
 
@@ -1015,6 +1026,7 @@ def _run_artifact_detection(
                     x0=x,
                     y0=y,
                     native_patch=native_patch,
+                    faithful_mode=faithful_mode,
                 )
                 patch_mask = np.where(tile_tissue == 1, BACKGROUND_CLASS, raw_mask)
             else:
@@ -1052,6 +1064,7 @@ def _predict_artifact_patch(
     x0: int,
     y0: int,
     native_patch: int,
+    faithful_mode: bool = False,
 ) -> np.ndarray:
     """Predict one 512x512 artifact class map for the grid cell at level-0 (x0, y0).
 
@@ -1065,7 +1078,27 @@ def _predict_artifact_patch(
 
     The prediction covers the anchored window, so it is realigned back to the
     grid cell and any strip that falls outside the slide is set to background.
+
+    ``faithful_mode`` reproduces GrandQC's original edge convention instead: the
+    partial edge region is read at its native origin and pasted to the top-left
+    of a ``native_patch`` canvas (padded, not anchored), then resized to 512x512
+    and placed in the grid cell with no realignment. Interior tiles are identical
+    to the anchored path; only right/bottom edge tiles differ. Use this only to
+    compare against GrandQC's reference masks, not for production QC.
     """
+
+    if faithful_mode:
+        w_rem = min(native_patch, slide.width - x0)
+        h_rem = min(native_patch, slide.height - y0)
+        region = slide.read_region((x0, y0), 0, (w_rem, h_rem)).convert(PRODUCTION_COLOR_MODE)
+        if (w_rem, h_rem) != (native_patch, native_patch):
+            canvas = Image.new(PRODUCTION_COLOR_MODE, (native_patch, native_patch), color=(255, 255, 255))
+            canvas.paste(region, (0, 0))
+            region = canvas
+        tile = region.resize((MODEL_TILE_SIZE, MODEL_TILE_SIZE), Image.Resampling.LANCZOS)
+        return _grandqc_raw_to_documented_labels(
+            _predict_raw_artifact_mask(artifact_model, preprocessing_fn, tile, device)
+        )
 
     win_w = min(native_patch, slide.width)
     win_h = min(native_patch, slide.height)
